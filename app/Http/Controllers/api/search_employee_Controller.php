@@ -18,7 +18,7 @@ class search_employee_Controller extends Controller
         $rules = [
 
             "name" => "string",
-            'active'=>'in:"active","Not_active"',
+            'status'=>'in:"active","Not_active"',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -29,21 +29,38 @@ class search_employee_Controller extends Controller
         }
 
         $employee = DB::table('employees')->select('*'); // maaking reference with all data to apply on refrence search with knowing with wich parameter
+
+
+
+
+
         if($request->status)
         {
             $employee->where('status','=',$request->status); //it comes first to fillter the all data which has not active
         }
         if($request->name && !$request->status)
         {
-            $employee->where('f_name', 'like', "%$request->name%")
-            ->orWhereRaw("concat(f_name, ' ', l_name) like '%$request->name%' ")
-           ->orWhere('l_name', 'like', "$request->name");
+            $employee->where(function($q) use($request ){
+               return $q->where('f_name', 'like', "%$request->name%")
+                ->orWhereRaw("concat(f_name, ' ', l_name) like '%$request->name%' ")
+               ->orWhere('l_name', 'like', "$request->name");
+
+            });
         }
         if($request->name && $request->status)
         {
-            $employee->where('f_name', 'like', "%$request->name%")
-            ->orWhereRaw("concat(f_name, ' ', l_name) like '%$request->name%' ")->where('status','=',$request->status)
-           ->orWhere('l_name', 'like', "$request->name");
+            $employee
+            ->whereRaw("concat(f_name, ' ', l_name) like '%$request->name%' ")->where('status','=',$request->status);
+
+
+               //------------------------------ other solution to retrieve data but the above line is the shortet one ------------------------------
+            // ->orWhere('l_name', 'like', "$request->name");
+            // $employee->where(function($q) use($request){
+            //     return $q->where('f_name', 'like', "%$request->name%")
+            //      ->orWhereRaw("concat(f_name, ' ', l_name) like '%$request->name%' ")
+            //     ->orWhere('l_name', 'like', "$request->name");
+
+            //  })->where('status','=',$request->status);
         }
 
         $employee = $employee->paginate(3); // geting data by refrence by DB and making paginate with 4 only
@@ -69,4 +86,9 @@ class search_employee_Controller extends Controller
         }
 
     }
+
+
+
+
 }
+
